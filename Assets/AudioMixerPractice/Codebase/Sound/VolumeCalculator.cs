@@ -16,7 +16,9 @@ namespace Assets.AudioMixerPractice.Codebase.Sound
 
         public float ComputePercentageFromDecibels(float decibels, float referenceLevel) 
         {
-            return Mathf.Pow(10, decibels / referenceLevel);
+            float logarithmBase = 10.0f;
+
+            return Mathf.Pow(logarithmBase, decibels / referenceLevel);
         }
     }
 }

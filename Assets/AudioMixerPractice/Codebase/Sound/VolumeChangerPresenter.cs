@@ -5,20 +5,23 @@ namespace Assets.AudioMixerPractice.Codebase.Sound
 {
     public class VolumeChangerPresenter
     {
+        private VolumeCalculator _calculator;
+
         private VolumeChanger _volumeChanger;
         private VolumePreferences _preferences;
-        private VolumeCalculator _calculator;
         private AudioMixer _mixer;
+        private MuteService _muteService;
 
-        public VolumeChangerPresenter(VolumeChanger volumeChanger, VolumePreferences volumePreferences, VolumeCalculator calculator, AudioMixer mixer)
+        public VolumeChangerPresenter(VolumeCalculator calculator, MuteService muteService,
+            VolumeChanger volumeChanger, VolumePreferences volumePreferences, AudioMixer mixer)
         {
+            _calculator = calculator;
+            _muteService = muteService;
             _volumeChanger = volumeChanger;
             _preferences = volumePreferences;
-            _calculator = calculator;
             _mixer = mixer;
 
             _volumeChanger.Changed += UpdateModel;
-            _volumeChanger.MuteSwitcherTriggered += OnMuteSwitcherTriggered;
             _preferences.Changed += UpdateView;
 
             LoadPreferences();
@@ -28,50 +31,31 @@ namespace Assets.AudioMixerPractice.Codebase.Sound
         {
             float decibels = _calculator.ComputeDecibelsFromPercentage(percentage, AudioMixerStaticData.MaxVolume, AudioMixerStaticData.MinVolume);
 
-            _preferences.SetVolumeLevel(channel, decibels);
+            _preferences.SetVolumeLevel(decibels);
 
             ChangeMixerLevel(channel, decibels);
         }
 
-        private void UpdateView(Channels channel, float decibels) 
+        private void UpdateView(Channels channel, float decibels)
         {
-            if (_preferences.IsMuted == false) 
-            {
-                float percentage = _calculator.ComputePercentageFromDecibels(decibels, AudioMixerStaticData.MaxVolume);
+            float percentage = _calculator.ComputePercentageFromDecibels(decibels, AudioMixerStaticData.MaxVolume);
 
-                _volumeChanger.SetChannelVolume(channel, percentage);
+            _volumeChanger?.SetChannelVolume(channel, percentage);
 
-                ChangeMixerLevel(channel, decibels);
-            }
-        }
-
-        private void OnMuteSwitcherTriggered(bool call) 
-        {
-            if (call)
-            {
-                _preferences.Mute();
-                _mixer.SetFloat(AudioMixerStaticData.GetChannelName(Channels.Master), AudioMixerStaticData.MinVolume);
-            }
-            else 
-            {
-                _preferences.Unmute();
-                LoadPreferences();
-            }
+            ChangeMixerLevel(channel, decibels);
         }
 
         private void ChangeMixerLevel(Channels channel, float decibels)
         {
-            if (_preferences.IsMuted == false)
-            {
+            if (_muteService.IsMuted == false) 
+            { 
                 _mixer.SetFloat(AudioMixerStaticData.GetChannelName(channel), decibels);
             }
         }
-        
-        private void LoadPreferences() 
+
+        private void LoadPreferences()
         {
-            UpdateView(Channels.Master, _preferences.MasterDecibels);
-            UpdateView(Channels.Effects, _preferences.EffectsDecibels);
-            UpdateView(Channels.Music, _preferences.MusicDecibels);
+            UpdateView(Channels.Master, _preferences.Decibels);
         }
     }
 }
